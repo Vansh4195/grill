@@ -1,4 +1,4 @@
-// llm.js — thin client for the two supported model providers.
+// llm.js — thin client for the supported model providers.
 // The end user's API key lives only in their browser and is sent directly to
 // the provider's API from here. No key ever passes through a server of ours.
 
@@ -15,6 +15,14 @@ export const PROVIDERS = {
     keyHint: "Get a key at platform.openai.com. Starts with sk-.",
     modelHint: "e.g. gpt-4o, gpt-4o-mini, gpt-4.1",
   },
+  gemini: {
+    label: "Gemini (free)",
+    defaultModel: "gemini-2.0-flash",
+    // Google's OpenAI-compatible endpoint accepts the same request shape as OpenAI.
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+    keyHint: "Free: get a key at aistudio.google.com/apikey. Starts with AIza.",
+    modelHint: "e.g. gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-flash",
+  },
 };
 
 /**
@@ -30,6 +38,8 @@ export async function chat(cfg, system, messages, opts = {}) {
   if (cfg.provider === "anthropic") {
     return chatAnthropic(cfg, system, messages, maxTokens);
   }
+  // Both OpenAI and Gemini speak the OpenAI chat-completions shape. Gemini just
+  // points at Google's OpenAI-compatible base URL.
   return chatOpenAI(cfg, system, messages, maxTokens, opts.json);
 }
 
@@ -69,7 +79,9 @@ async function chatOpenAI(cfg, system, messages, maxTokens, json) {
   };
   if (json) body.response_format = { type: "json_object" };
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  // Default to OpenAI; Gemini supplies an OpenAI-compatible baseURL.
+  const baseURL = PROVIDERS[cfg.provider]?.baseURL || "https://api.openai.com/v1";
+  const res = await fetch(`${baseURL}/chat/completions`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -78,7 +90,7 @@ async function chatOpenAI(cfg, system, messages, maxTokens, json) {
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) throw await errorFrom(res, "openai");
+  if (!res.ok) throw await errorFrom(res, cfg.provider);
   const data = await res.json();
   const text = data.choices?.[0]?.message?.content || "";
   if (!text) throw new Error("The model returned an empty response. Try again.");

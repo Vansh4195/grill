@@ -1,0 +1,13 @@
+{
+  "name": "grill",
+  "version": "1.0.0",
+  "description": "A voice-based AI mock interviewer that runs entirely in your browser.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "node tests/e2e.mjs",
+    "serve": "python3 -m http.server 8000"
+  },
+  "license": "MIT",
+  "homepage": "https://vansh4195.github.io/grill/"
+}

@@ -8,8 +8,8 @@ rubric with concrete feedback.
 **Live:** https://vansh4195.github.io/grill/
 
 There is no backend. The page talks directly to your chosen model provider
-(Anthropic or OpenAI) using a key you paste in — the key is stored only in your
-browser and is sent only to the provider's API.
+(Anthropic, OpenAI, or Gemini) using a key you paste in — the key is stored only
+in your browser and is sent only to the provider's API.
 
 ---
 
@@ -56,15 +56,47 @@ On first load, Grill asks for an API key. You can use either provider:
   Anthropic API be called from client-side JavaScript.
 - **OpenAI (GPT)** — get a key at
   [platform.openai.com](https://platform.openai.com). Default model `gpt-4o`.
+- **Gemini (free)** — get a free key at
+  [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Default model
+  `gemini-2.0-flash`. This uses Google's OpenAI-compatible endpoint
+  (`generativelanguage.googleapis.com/.../openai`), which sends the exact same
+  request shape as OpenAI. It works directly from the browser — Google's endpoint
+  returns CORS headers for this origin — and is the cheapest way to try Grill
+  (the Gemini free tier costs nothing for this usage).
 
 Open **Settings** any time to switch providers, change the model, or forget the
 key.
+
+## Test for free with Gemini
+
+You can prove the model request/parse path works for free, without a browser,
+using a Google Gemini key:
+
+1. Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+2. Run the end-to-end test:
+
+   ```bash
+   GEMINI_API_KEY=your_key node tests/e2e.mjs
+   # or, with the npm script:
+   GEMINI_API_KEY=your_key npm run test:e2e
+   ```
+
+The test makes one tiny real call (`max_tokens: 20`) through the same
+OpenAI-compatible request shape the app uses, pointed at Gemini's
+`gemini-2.0-flash`, and prints `PASS` (or `FAIL: <reason>` and exits non-zero).
+If `GEMINI_API_KEY` is unset it prints `SKIP` and exits 0, so it's safe to wire
+into CI without a secret.
+
+Because this is a Node script there's no browser and therefore no CORS concern —
+it's the most reliable free path. The in-app **Gemini (free)** provider uses the
+same endpoint and model and also works from the browser.
 
 ### About your key
 
 - It is saved only in this browser's `localStorage`.
 - It is sent only to the provider's own API endpoint
-  (`api.anthropic.com` / `api.openai.com`), directly from your browser.
+  (`api.anthropic.com` / `api.openai.com` /
+  `generativelanguage.googleapis.com`), directly from your browser.
 - It never passes through any server belonging to this project — there is no
   such server.
 
@@ -93,7 +125,7 @@ Vanilla JavaScript, no framework, no bundler:
 - `index.html` / `styles.css` — UI (setup, interview, scorecard, settings,
   history).
 - `app.js` — the controller: view state, interview loop, recording controls.
-- `llm.js` — the provider client (Anthropic + OpenAI) and JSON parsing.
+- `llm.js` — the provider client (Anthropic + OpenAI + Gemini) and JSON parsing.
 - `speech.js` — Web Speech API wrappers (synthesis, recognition, voice list).
 - `prompts.js` — the interviewer persona and the grading rubric instructions.
 
