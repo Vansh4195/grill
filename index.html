@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Grill — AI Voice Mock Interviewer</title>
+<meta name="description" content="A voice-based AI mock interviewer that runs entirely in your browser. Bring your own Anthropic or OpenAI key." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%99%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div class="brand-text">
+        <h1>Grill</h1>
+        <p>AI voice mock interviewer</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="historyBtn" class="btn-ghost" type="button" aria-label="Past sessions">Sessions</button>
+      <button id="settingsBtn" class="btn-ghost" type="button" aria-label="Settings">Settings</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- SETUP VIEW -->
+    <section id="setupView" class="view">
+      <div class="card setup-card">
+        <h2>Set up your interview</h2>
+        <p class="muted">Pick a role, focus, and difficulty. The interviewer asks questions out loud; you answer with your voice.</p>
+
+        <div class="field">
+          <label for="roleSelect">Role / topic</label>
+          <select id="roleSelect"></select>
+        </div>
+
+        <div class="field" id="customRoleField" hidden>
+          <label for="customRole">Custom role / topic</label>
+          <input id="customRole" type="text" placeholder="e.g. Senior Product Manager, fintech" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label for="difficultySelect">Difficulty</label>
+          <div class="segmented" id="difficultySelect" role="radiogroup" aria-label="Difficulty">
+            <button type="button" data-value="easy" role="radio" aria-checked="false">Warm-up</button>
+            <button type="button" data-value="medium" role="radio" aria-checked="true">Standard</button>
+            <button type="button" data-value="hard" role="radio" aria-checked="false">Hard</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="lengthSelect">Number of questions</label>
+          <select id="lengthSelect">
+            <option value="3">3 — quick</option>
+            <option value="5" selected>5 — standard</option>
+            <option value="8">8 — full loop</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="voiceSelect">Interviewer voice</label>
+          <select id="voiceSelect"><option value="">Default browser voice</option></select>
+        </div>
+
+        <button id="startBtn" class="btn-primary" type="button">Start interview</button>
+        <p id="setupNote" class="note"></p>
+      </div>
+    </section>
+
+    <!-- INTERVIEW VIEW -->
+    <section id="interviewView" class="view" hidden>
+      <div class="card interview-card">
+        <div class="interview-head">
+          <div>
+            <span class="chip" id="roleChip"></span>
+            <span class="chip chip-soft" id="difficultyChip"></span>
+          </div>
+          <div class="progress" id="progressLabel" aria-live="polite"></div>
+        </div>
+
+        <div class="transcript" id="transcript" aria-live="polite"></div>
+
+        <div class="mic-area">
+          <div class="status-row">
+            <span id="statusDot" class="status-dot"></span>
+            <span id="statusText" class="status-text">Ready</span>
+            <button id="replayBtn" class="btn-ghost btn-sm" type="button" title="Replay the question">Replay</button>
+          </div>
+
+          <div class="answer-box">
+            <textarea id="answerInput" rows="3" placeholder="Your answer appears here as you speak — or type it."></textarea>
+          </div>
+
+          <div class="controls">
+            <button id="recordBtn" class="btn-record" type="button">
+              <span class="rec-icon" aria-hidden="true"></span>
+              <span id="recordLabel">Hold to talk</span>
+            </button>
+            <button id="submitBtn" class="btn-primary btn-sm" type="button" disabled>Submit answer</button>
+          </div>
+          <p id="interviewNote" class="note"></p>
+        </div>
+      </div>
+
+      <button id="endBtn" class="btn-ghost btn-end" type="button">End &amp; get feedback</button>
+    </section>
+
+    <!-- FEEDBACK VIEW -->
+    <section id="feedbackView" class="view" hidden>
+      <div class="card feedback-card">
+        <h2>Your scorecard</h2>
+        <div id="scoreSummary" class="score-summary"></div>
+        <div id="rubric" class="rubric"></div>
+        <div id="feedbackBody" class="feedback-body"></div>
+        <div class="feedback-actions">
+          <button id="newBtn" class="btn-primary" type="button">New interview</button>
+          <button id="reviewBtn" class="btn-ghost" type="button">Review transcript</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head">
+        <h3 id="settingsTitle">Settings</h3>
+        <button class="btn-ghost btn-sm" type="button" data-close>Close</button>
+      </div>
+
+      <div class="field">
+        <label for="providerSelect">Model provider</label>
+        <select id="providerSelect">
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="openai">OpenAI (GPT)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="apiKeyInput">API key</label>
+        <input id="apiKeyInput" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false" />
+        <p class="hint" id="keyHint"></p>
+      </div>
+
+      <div class="field">
+        <label for="modelInput">Model</label>
+        <input id="modelInput" type="text" autocomplete="off" spellcheck="false" />
+        <p class="hint" id="modelHint"></p>
+      </div>
+
+      <div class="settings-foot">
+        <p class="hint privacy">
+          Your key is stored only in this browser's <code>localStorage</code> and sent
+          directly to the provider's API. It never touches any server of ours.
+        </p>
+        <div class="settings-buttons">
+          <button id="clearKeyBtn" class="btn-ghost btn-sm" type="button">Forget key</button>
+          <button id="saveSettingsBtn" class="btn-primary btn-sm" type="button">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY MODAL -->
+  <div id="historyModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+      <div class="modal-head">
+        <h3 id="historyTitle">Past sessions</h3>
+        <button class="btn-ghost btn-sm" type="button" data-close>Close</button>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span>Runs fully in your browser · BYO API key</span>
+    <span class="dot">·</span>
+    <a href="https://github.com/Vansh4195/grill" target="_blank" rel="noopener">Source</a>
+  </footer>
+</div>
+
+<script src="app.js" type="module"></script>
+</body>
+</html>
